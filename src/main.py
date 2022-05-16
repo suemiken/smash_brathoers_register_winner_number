@@ -1,7 +1,12 @@
 from PIL import Image
 import pyocr
-im = Image.open('./images/result_example.jpg')
+
 import requests
+import pprint
+import re
+import os
+
+
 def get_chara_name(images):
 
     # 自身の順位：(X_left, Y_up) = (420, 0), (X_right, Y_up) = (580, 0), (X_left, Y_down) = (420, 160),(X_right, Y_down) = (580, 160)
@@ -40,53 +45,23 @@ def get_chara_name(images):
     my_rank = engine.image_to_string(my_rank_im, lang="eng", builder=pyocr.builders.DigitBuilder(tesseract_layout=10))
     match_rank = engine.image_to_string(match_rank_im, lang="eng", builder=pyocr.builders.DigitBuilder(tesseract_layout=10))
 
-    print(my_rank)
-    print(match_rank)
+    # print(my_rank)
+    # print(match_rank)
     if my_rank == '2':
         match_rank = '1'
     elif match_rank == '2':
         my_rank = '1'
 
-    print(my_rank)
-    print(match_rank)
+    # print(my_rank)
+    # print(match_rank)
 
     if (my_rank == '1') or (my_rank == '4') or (my_rank == '7'):
         my_rank = '1'
         match_rank = '2'
-        print('nak')
     elif (match_rank == '1') or (match_rank == '4') or (match_rank == '7'):
         match_rank = '1'
         my_rank = '2'
 
-    return {'my_rank':my_rank, 'usedfighter':usedfighter, 'match_rank':match_rank, 'matchfighter':matchfighter}
-
-info = get_chara_name(im)
-
-def request_kuma(info):
-    
-    # login
-
-    # https://kumamate.net/wp-login.php
-
-
-    # response = requests.get('https://kumamate.net/')
-    # print(response.status_code)    # HTTPのステータスコード取得
-    # print(response.text) 
-
-    """
-    怪しいやつら
-    げっち
-    ロゼッタ
-    どくまり
-    くっぱ
-    相倉
-    ぜろさむ
-    ミー
-    フィットれ
-    むらびと
-    おりま
-    みゅーつー
-    """
     characters = ['MARIO', 'DONKEY KONG', 'LINK', 'SAMUS', 'DARK SAMUS', 'YOSHI', 'KIRBY', 'FOX', 'PIKACHU', 'LUIGI', 'NESS',
                 'CAPTAIN FALCON', 'PURIN', 'PEACH', 'DAISY', 'KOOPA', 'ICE CLIMBERS', 'SHEIK', 'ZELDA', 'DR.MARIO', 'PICHU', 'FALCO',
                 'MARTH', 'LUCINA', 'YOUNG LINK', 'GANONDORF', 'MEWTWO', 'ROY', 'CHROM', 'MR.GAME & WATCH', 'META KNIGHT', 'PIT', 'DARK PIT', 'ZERO SUIT SAMUS', 'WARIO',
@@ -94,11 +69,47 @@ def request_kuma(info):
                 'Wii Fit TRAINER', 'ROSETTA & CHIKO', 'LITTLE MAC', 'GEKKOUGA', 'Mii FIGHTER', 'Mii GUNNER', 'Mii SWORDSMAN'
     ]
 
-    UsedFighter = str(characters.index(info['usedfighter']) + 1)
-    MatchFighter = str(characters.index(info['matchfighter']) + 1)
-    Result  = info['my_rank']
 
-    return UsedFighter, MatchFighter, Result
 
-print(request_kuma(info))
-    
+    UsedFighter = str(characters.index(usedfighter) + 1)
+    MatchFighter = str(characters.index(matchfighter) + 1)
+    Result  = my_rank
+
+    payload = {'UseFighter': UsedFighter, 'MatchFighter': MatchFighter, 'comment': '', 'Result': Result  , 'submit': '登録する'}
+
+    return payload
+
+#クマメイトのユーザ名とパスワード
+USER = '****'
+PASS = '****'
+
+session = requests.Session()
+url = {'top':'https://kumamate.net', 'login':'https://kumamate.net/wp-login.php', 'regit':'https://kumamate.net/submitfight'}
+login={'log': USER, 'pwd':PASS, 'wp-submit': 'ログイン','redirect_to': url['top'], 'testcookie': '1'}
+
+state = session.get(url['top'], timeout=(20, 20))
+
+print(re.search(r'<title.*', state.text).group(0))
+print(state.status_code)
+
+# ログイン
+state = session.post(url['login'], data=login, timeout=(20, 20))
+print(re.search(r'<title.*', state.text).group(0))
+print(state.status_code)
+
+# fileの読みも気
+### 画像ファイル数だけ繰り返す ###
+
+data_dir_path = u"./images/"
+file_list = os.listdir(r'./images/')
+
+for file_name in file_list:
+    root, ext = os.path.splitext(file_name)
+    if ext == u'.png' or u'.jpeg' or u'.jpg':
+        abs_name = data_dir_path + '/' + file_name
+        print(abs_name)
+        im = Image.open(abs_name)
+        payload = get_chara_name(im)
+
+        state = session.get(url['top'])
+        state = session.post(url['regit'], data=payload, timeout=(20, 20))
