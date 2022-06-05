@@ -42,10 +42,13 @@ OS:windows
 
 
 python環境:
-conda env create -f requirement.yml
+requirement.ymlに最低限必要なパッケージを記載してある。
 
 tesseractのOCRエンジン：
 別途インストールが必要
 
 # Usage
+
+imagesフォルダ内にリザルト画面を保存し、main.pyを稼働させることによって登録できる。
+imagesフォルダ内に６つのリザルト画面の例を用意している。この画像において、正しくキャラクター名を認識でき、クマメイトへ保存できた。
 
